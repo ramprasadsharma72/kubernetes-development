@@ -2,6 +2,8 @@
 
 apt-get install -y curl openssh-server vim 
 sudo sed -i '/^#PermitRootLogin prohibit-password/a PermitRootLogin yes' /etc/ssh/sshd_config
+sudo sed -i 's/^#ClientAliveInterval 0/ClientAliveInterval 20/' /etc/ssh/sshd_config
+sudo sed -i 's/^#ClientAliveCountMax 3/ClientAliveCountMax 30/' /etc/ssh/sshd_config
 systemctl restart ssh
 systemctl disable --now ufw
 
