@@ -1,0 +1,108 @@
+root@master:~# cat pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: example-pod
+spec:
+  containers:
+  - name: busybox
+    image: busybox
+    command: ["sleep","3600"]
+    volumeMounts:
+      - mountPath: /data
+        name: my-temp-storage
+  volumes:
+    - name: my-temp-storage
+      hostPath:
+        path: /mnt/dataaaa1
+        type: Directory
+root@master:~# cat pv.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  hostPath:
+    path: /mnt/pv  # This path must exist on the node
+root@master:~# cat pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: manual
+root@master:~# cat deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        - name: my-container
+          image: nginx
+          volumeMounts:
+            - mountPath: "/usr/share/nginx/html"
+              name: my-storage
+      volumes:
+        - name: my-storage
+          persistentVolumeClaim:
+            claimName: my-pvc
+root@master:~# cat pvc-d.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs-client
+  resources:
+    requests:
+      storage: 1Gi
+root@master:~# cat depl-d.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nginx
+  name: nfs-nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      volumes:
+        - name: nfs-nginx
+          persistentVolumeClaim:
+            claimName: nfs-pvc
+      containers:
+        - image: nginx
+          name: nginx
+          volumeMounts:
+            - name: nfs-nginx
+              mountPath: /usr/share/nginx/html
